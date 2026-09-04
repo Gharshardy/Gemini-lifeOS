@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all for any unspecified document paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation helper for Journal documents
+    function isValidJournal(uid) {
+      return incoming().userId == uid
+        && incoming().id is string
+        && incoming().id.size() <= 128
+        && incoming().title is string
+        && incoming().title.size() <= 256
+        && incoming().summary is string
+        && incoming().summary.size() <= 10000
+        && (!('userNotes' in incoming()) || (incoming().userNotes is string && incoming().userNotes.size() <= 16384))
+        && (!('mood' in incoming()) || (incoming().mood is string && incoming().mood.size() <= 64));
+    }
+
+    // Validation helper for Conversation documents
+    function isValidConversation(uid) {
+      return incoming().userId == uid
+        && incoming().id is string
+        && incoming().id.size() <= 128
+        && incoming().title is string
+        && incoming().title.size() <= 256
+        && incoming().messages is list
+        && incoming().messages.size() <= 100;
+    }
+
+    // Validation helper for Summary documents
+    function isValidSummary(uid) {
+      return incoming().userId == uid
+        && incoming().id is string
+        && incoming().id.size() <= 128
+        && incoming().title is string
+        && incoming().summary is string
+        && incoming().summary.size() <= 10000;
+    }
+
+    // Validation helper for Weekly Insight documents
+    function isValidInsight(uid) {
+      return incoming().userId == uid
+        && incoming().id is string
+        && incoming().id.size() <= 128
+        && incoming().executiveOverview is string
+        && incoming().executiveOverview.size() <= 15000;
+    }
+
+    // User-scoped data isolation hierarchy: /users/{uid}/...
+    match /users/{uid} {
+      // Direct access to the user profile/root is strictly restricted to the authenticated owner
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && (!('userId' in incoming()) || incoming().userId == uid);
+      allow update: if isOwner(uid) && (!('userId' in incoming()) || incoming().userId == uid);
+      allow delete: if isOwner(uid);
+
+      // 1. Journals subcollection
+      match /journals/{journalId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidId(journalId) && isValidJournal(uid);
+        allow update: if isOwner(uid) && isValidId(journalId) && isValidJournal(uid) && incoming().userId == existing().userId;
+        allow delete: if isOwner(uid) && isValidId(journalId);
+      }
+
+      // 2. Conversations subcollection
+      match /conversations/{conversationId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidId(conversationId) && isValidConversation(uid);
+        allow update: if isOwner(uid) && isValidId(conversationId) && isValidConversation(uid) && incoming().userId == existing().userId;
+        allow delete: if isOwner(uid) && isValidId(conversationId);
+      }
+
+      // 3. Summaries subcollection
+      match /summaries/{summaryId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidId(summaryId) && isValidSummary(uid);
+        allow update: if isOwner(uid) && isValidId(summaryId) && isValidSummary(uid) && incoming().userId == existing().userId;
+        allow delete: if isOwner(uid) && isValidId(summaryId);
+      }
+
+      // 4. WeeklyInsights subcollection
+      match /weeklyInsights/{insightId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidId(insightId) && isValidInsight(uid);
+        allow update: if isOwner(uid) && isValidId(insightId) && isValidInsight(uid) && incoming().userId == existing().userId;
+        allow delete: if isOwner(uid) && isValidId(insightId);
+      }
+    }
+  }
+}

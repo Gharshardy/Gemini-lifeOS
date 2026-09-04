@@ -1,0 +1,232 @@
+{
+  "entities": {
+    "Journal": {
+      "title": "Journal",
+      "description": "A user-owned journal entry containing conversation transcripts, AI generated summary, and personal reflections.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the journal entry",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the journal owner",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the journal entry",
+          "maxLength": 256
+        },
+        "summary": {
+          "type": "string",
+          "description": "AI-generated executive summary of the conversation",
+          "maxLength": 8192
+        },
+        "keyPoints": {
+          "type": "array",
+          "description": "Core bullet realizations or key takeaways"
+        },
+        "topics": {
+          "type": "array",
+          "description": "Extracted thematic tags or life domains"
+        },
+        "goals": {
+          "type": "array",
+          "description": "Personal goals formulated or identified in the entry"
+        },
+        "actionItems": {
+          "type": "array",
+          "description": "Concrete commitments or next actions"
+        },
+        "mood": {
+          "type": "string",
+          "description": "Detected or selected emotional valence or mood",
+          "maxLength": 64
+        },
+        "userNotes": {
+          "type": "string",
+          "description": "Personal annotations and action items added by the user",
+          "maxLength": 16384
+        },
+        "conversation": {
+          "type": "array",
+          "description": "Array of message objects comprising the conversation"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["id", "userId", "title", "summary", "createdAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "An active or archived multi-turn conversational session with Gemini.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique session identifier",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the conversation owner",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Conversation topic title",
+          "maxLength": 256
+        },
+        "messages": {
+          "type": "array",
+          "description": "Messages exchanged in the dialogue"
+        },
+        "status": {
+          "type": "string",
+          "description": "Active, archived, or saved-as-journal status",
+          "enum": ["active", "saved", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of session initialization"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last message"
+        }
+      },
+      "required": ["id", "userId", "title", "messages", "createdAt"]
+    },
+    "Summary": {
+      "title": "Summary",
+      "description": "An AI-generated executive synthesis of a journal entry or dialogue.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique summary identifier",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the summary owner",
+          "maxLength": 128
+        },
+        "journalId": {
+          "type": "string",
+          "description": "Associated journal document ID",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title or headline of the summary",
+          "maxLength": 256
+        },
+        "summary": {
+          "type": "string",
+          "description": "Executive summary content",
+          "maxLength": 8192
+        },
+        "keyPoints": {
+          "type": "array",
+          "description": "Key takeaways"
+        },
+        "topics": {
+          "type": "array",
+          "description": "Extracted topics"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of generation"
+        }
+      },
+      "required": ["id", "userId", "title", "summary", "createdAt"]
+    },
+    "WeeklyInsight": {
+      "title": "WeeklyInsight",
+      "description": "Weekly life intelligence synthesis document generated by Gemini.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique intelligence report identifier",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner",
+          "maxLength": 128
+        },
+        "generatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of synthesis"
+        },
+        "executiveOverview": {
+          "type": "string",
+          "description": "High-level cognitive synthesis",
+          "maxLength": 8192
+        },
+        "clarityScore": {
+          "type": "number",
+          "description": "Cognitive clarity score between 1 and 100"
+        },
+        "frequentlyDiscussedTopics": {
+          "type": "array",
+          "description": "Topics frequently mentioned"
+        },
+        "activeGoals": {
+          "type": "array",
+          "description": "Active goals"
+        },
+        "completedGoals": {
+          "type": "array",
+          "description": "Completed goals"
+        },
+        "unfinishedActionItems": {
+          "type": "array",
+          "description": "Unfinished commitments"
+        },
+        "recurringThemes": {
+          "type": "array",
+          "description": "Recurring thematic patterns"
+        },
+        "decisionsMade": {
+          "type": "array",
+          "description": "Decisions logged"
+        },
+        "suggestedNextActions": {
+          "type": "array",
+          "description": "Actionable next steps"
+        }
+      },
+      "required": ["id", "userId", "generatedAt", "executiveOverview"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}/journals/{journalId}": {
+      "schema": "Journal",
+      "description": "Stores private journal entries scoped exclusively to the authenticated user."
+    },
+    "/users/{uid}/conversations/{conversationId}": {
+      "schema": "Conversation",
+      "description": "Stores conversation history and sessions isolated to the authenticated user."
+    },
+    "/users/{uid}/summaries/{summaryId}": {
+      "schema": "Summary",
+      "description": "Stores executive summaries isolated to the authenticated user."
+    },
+    "/users/{uid}/weeklyInsights/{insightId}": {
+      "schema": "WeeklyInsight",
+      "description": "Stores periodic weekly life intelligence analyses isolated to the authenticated user."
+    }
+  }
+}
